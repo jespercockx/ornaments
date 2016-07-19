@@ -85,28 +85,30 @@ ElimHypDat (c ⊕ cs) γ A R T = ElimHypCon c γ A R (λ i x → T i (zero , x))
 ElimHyp : ∀ {I Γ #c} (d : DatDesc I Γ #c) (γ : ⟦ Γ ⟧) (T : (i : ⟦ I ⟧) → μ d γ i → Set) → Set
 ElimHyp d γ T = ElimHypDat d γ (μ d γ) T (λ i x → T i ⟨ x ⟩)
 
-elimCon : ∀ {I Γ} (c : ConDesc I Γ) {γ : ⟦ Γ ⟧}
-        → {A : ⟦ I ⟧ → Set} (R : (i : ⟦ I ⟧) → A i → Set)
-        → (T : (i : ⟦ I ⟧) → ⟦ c ⟧ γ A i → Set)
-        → (r : {i : ⟦ I ⟧} (x : A i) → R i x)
-        → ElimHypCon c γ A R T → {i : ⟦ I ⟧} (x : ⟦ c ⟧ γ A i) → T i x
-elimCon (ι o)           R T r h refl     = h
-elimCon (nm /    S ⊗ c) R T r h (x , xs) = elimCon c R (λ i xs → T i (x , xs)) r (h x) xs
-elimCon (nm /rec i ⊗ c) R T r h (x , xs) = elimCon c R (λ i xs → T i (x , xs)) r (h x (r x)) xs
+module _ {I Γ #c} (d : DatDesc I Γ #c)
+         {γ : ⟦ Γ ⟧} (R : (i : ⟦ I ⟧) → μ d γ i → Set)
+         (h : ElimHyp d γ R) where
 
-elimDat : ∀ {I Γ #c} (d : DatDesc I Γ #c) {γ : ⟦ Γ ⟧}
-        → {A : ⟦ I ⟧ → Set} (R : (i : ⟦ I ⟧) → A i → Set)
-        → (T : (i : ⟦ I ⟧) → ⟦ d ⟧ γ A i → Set)
-        → (r : {i : ⟦ I ⟧} → (x : A i) → R i x)
-        → ElimHypDat d γ A R T → {i : ⟦ I ⟧} (x : ⟦ d ⟧ γ A i)  → T i x
-elimDat `0 R T r () x
-elimDat (c ⊕ cs) R T r (h , hs) (zero  , v) = elimCon c  R (λ i x → T i (zero , x))   r h  v
-elimDat (c ⊕ cs) R T r (h , hs) (suc k , v) = elimDat cs R (λ i → T i ∘ (suc *** id)) r hs (k , v)
+  D : ⟦ I ⟧ → Set
+  D i = μ d γ i
 
-{-# TERMINATING #-}
-elim : ∀ {I Γ #c} (d : DatDesc I Γ #c) {γ : ⟦ Γ ⟧} (T : (i : ⟦ I ⟧) → μ d γ i → Set)
-     → ElimHyp d γ T → ∀ {i} x → T i x
-elim d T h ⟨ x ⟩ = elimDat d T (λ i x → T i ⟨ x ⟩) (elim d T h) h x
+  elim : ∀ {i} x → R i x
+
+  elimCon : ∀ {Γ'} (c : ConDesc I Γ') {γ : ⟦ Γ' ⟧}
+          → (T : (i : ⟦ I ⟧) → ⟦ c ⟧ γ D i → Set)
+          → ElimHypCon c γ D R T → {i : ⟦ I ⟧} (x : ⟦ c ⟧ γ D i) → T i x
+  elimCon (ι o)           T h refl     = h
+  elimCon (nm /    S ⊗ c) T h (x , xs) = elimCon c (λ i xs → T i (x , xs)) (h x) xs
+  elimCon (nm /rec i ⊗ c) T h (x , xs) = elimCon c (λ i xs → T i (x , xs)) (h x (elim x)) xs
+
+  elimDat : ∀ {#c'} (d' : DatDesc I Γ #c') {γ : ⟦ Γ ⟧}
+          → (T : (i : ⟦ I ⟧) → ⟦ d' ⟧ γ D i → Set)
+          → ElimHypDat d' γ D R T → {i : ⟦ I ⟧} (x : ⟦ d' ⟧ γ D i)  → T i x
+  elimDat `0       T ()       x
+  elimDat (c ⊕ cs) T (h , hs) (zero  , v) = elimCon c  (λ i x → T i (zero , x))   h  v
+  elimDat (c ⊕ cs) T (h , hs) (suc k , v) = elimDat cs (λ i → T i ∘ (suc *** id)) hs (k , v)
+
+  elim ⟨ x ⟩ = elimDat d (λ i x → R i ⟨ x ⟩) h x
 
 module Test-elim-nondependent where
   open import Cx.Named.Examples
