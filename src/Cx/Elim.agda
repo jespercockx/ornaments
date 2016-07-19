@@ -38,7 +38,7 @@ case : ∀ {I Γ #c} (d : DatDesc I Γ #c) {γ : ⟦ Γ ⟧} (T : (i : ⟦ I ⟧
      → CaseHyp d γ T → ∀ {i} x → T i x
 case d T h ⟨ x ⟩ = caseDat d (λ i x → T i ⟨ x ⟩) h x
 
-module Test-nondependent where
+module Test-case-nondependent where
   open import Cx.Named.Examples
 
   case-nat : (X : Set)
@@ -51,7 +51,7 @@ module Test-nondependent where
             → μ listD (tt , A) tt → X
   case-list X n = case listD (λ _ _ → X) n
 
-module Test-dependent where
+module Test-case-dependent where
   open import Cx.Named.Examples
 
   case-nat : (X : μ natD tt tt → Set)
@@ -107,3 +107,29 @@ elimDat (c ⊕ cs) R T r (h , hs) (suc k , v) = elimDat cs R (λ i → T i ∘ (
 elim : ∀ {I Γ #c} (d : DatDesc I Γ #c) {γ : ⟦ Γ ⟧} (T : (i : ⟦ I ⟧) → μ d γ i → Set)
      → ElimHyp d γ T → ∀ {i} x → T i x
 elim d T h ⟨ x ⟩ = elimDat d T (λ i x → T i ⟨ x ⟩) (elim d T h) h x
+
+module Test-elim-nondependent where
+  open import Cx.Named.Examples
+
+  elim-nat : (X : Set)
+           → (X × (μ natD tt tt → X → X) × ⊥)
+           → μ natD tt tt → X
+  elim-nat X n = elim natD (λ _ _ → X) n
+
+  elim-list : {A : Set} (X : Set)
+            → (X × (A → μ listD (tt , A) tt → X → X) × ⊥)
+            → μ listD (tt , A) tt → X
+  elim-list X n = elim listD (λ _ _ → X) n
+
+module Test-elim-dependent where
+  open import Cx.Named.Examples
+
+  elim-nat : (X : μ natD tt tt → Set)
+           → (X ⟨ 0 , refl ⟩ × ((n : μ natD tt tt) → X n → X ⟨ 1 , n , refl ⟩) × ⊥)
+           → (n : μ natD tt tt) → X n
+  elim-nat X n = elim natD (λ _ → X) n
+
+  elim-list : {A : Set} (X : μ listD (tt , A) tt → Set)
+            → (X ⟨ 0 , refl ⟩ × ((x : A) (xs : μ listD (tt , A) tt) → X xs → X ⟨ 1 , x , xs , refl ⟩) × ⊥)
+            → (l : μ listD (tt , A) tt) → X l
+  elim-list X n = elim listD (λ _ → X) n
